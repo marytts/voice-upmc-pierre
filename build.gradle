@@ -2,12 +2,3 @@ apply plugin: 'de.dfki.mary.voicebuilding'
 
 group 'de.dfki.mary'
 version '5.1.2'
-
-voice {
-    name 'upmc-pierre'
-    language 'fr'
-    gender 'male'
-    type 'unit selection'
-    description 'A male French unit selection voice, built at ISIR (UPMC) using data recorded by Pierre Chauvin'
-    samplingRate 16000
-}
