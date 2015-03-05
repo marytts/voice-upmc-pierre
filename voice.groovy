@@ -1,6 +1,8 @@
 voice {
     name = 'upmc-pierre'
-    language = 'fr'
+    locale {
+        language = 'fr'
+    }
     gender = 'male'
     type = 'unit selection'
     description = 'A male French unit selection voice, built at ISIR (UPMC) using data recorded by Pierre Chauvin'
