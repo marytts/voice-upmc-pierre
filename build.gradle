@@ -20,7 +20,9 @@ voice {
     samplingRate = 16000
 }
 
-task downloadAudio(type: de.undercouch.gradle.tasks.download.Download) {
+import de.undercouch.gradle.tasks.download.Download
+
+task downloadAudio(type: Download) {
     ext.destFile = file("$buildDir/audio.tar")
     src "https://github.com/marytts/upmc-pierre-data/releases/download/v0.1/$destFile.name"
     dest destFile.parentFile
@@ -32,6 +34,14 @@ task unpackAudio(type: Copy) {
     dependsOn downloadAudio
     from tarTree(downloadAudio.destFile)
     into buildDir // tarball unpacks build/audio actually
+}
+
+task downloadData(type: Download) {
+    def destFile = file("$buildDir/upmc-pierre-data.zip")
+    src "https://github.com/marytts/upmc-pierre-data/archive/v0.1.zip"
+    dest destFile
+    overwrite false
+    acceptAnyCertificate true
 }
 
 processDataResources.dependsOn unpackAudio
