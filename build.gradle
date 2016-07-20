@@ -30,12 +30,6 @@ task downloadAudio(type: Download) {
     acceptAnyCertificate true
 }
 
-task unpackAudio(type: Copy) {
-    dependsOn downloadAudio
-    from tarTree(downloadAudio.destFile)
-    into buildDir // tarball unpacks build/audio actually
-}
-
 task downloadData(type: Download) {
     ext.destFile = file("$buildDir/upmc-pierre-data.zip")
     src "https://github.com/marytts/upmc-pierre-data/archive/v0.1.zip"
@@ -44,23 +38,22 @@ task downloadData(type: Download) {
     acceptAnyCertificate true
 }
 
-task unpackData(type: Copy) {
-    dependsOn downloadData
-    from zipTree(downloadData.destFile)
-    into buildDir
-    include '**/*.txt', '**/*.lab'
-    filesMatching '**/*.txt', {
-        it.path = "text/$it.name"
+processDataResources {
+    dependsOn downloadAudio, downloadData
+    from tarTree(downloadAudio.destFile)
+    from zipTree(downloadData.destFile), {
+        include '**/*.txt', '**/*.lab'
+        filesMatching '**/*.txt', {
+            path = "text/$it.name"
+        }
+        filesMatching '**/*.lab', {
+            path = "lab/$it.name"
+        }
+        includeEmptyDirs = false
     }
-    filesMatching '**/*.lab', {
-        it.path = "lab/$it.name"
-    }
-    includeEmptyDirs = false
 }
 
-processDataResources.dependsOn unpackAudio, unpackData
-
 wav {
-    srcDir = file("$buildDir/audio")
+    srcDir = file("$processDataResources.destinationDir/audio")
     srcFileExt = 'flac'
 }
