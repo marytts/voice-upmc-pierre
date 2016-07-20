@@ -21,9 +21,15 @@ voice {
 }
 
 task downloadAudio(type: de.undercouch.gradle.tasks.download.Download) {
-    def destFile = file("$buildDir/audio.tar")
+    ext.destFile = file("$buildDir/audio.tar")
     src "https://github.com/marytts/upmc-pierre-data/releases/download/v0.1/$destFile.name"
     dest destFile.parentFile
     overwrite false
     acceptAnyCertificate true
+}
+
+task unpackAudio(type: Copy) {
+    dependsOn downloadAudio
+    from tarTree(downloadAudio.destFile)
+    into buildDir // tarball unpacks build/audio actually
 }
