@@ -33,3 +33,10 @@ task unpackAudio(type: Copy) {
     from tarTree(downloadAudio.destFile)
     into buildDir // tarball unpacks build/audio actually
 }
+
+processDataResources.dependsOn unpackAudio
+
+wav {
+    srcDir = file("$buildDir/audio")
+    srcFileExt = 'flac'
+}
