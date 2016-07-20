@@ -37,14 +37,28 @@ task unpackAudio(type: Copy) {
 }
 
 task downloadData(type: Download) {
-    def destFile = file("$buildDir/upmc-pierre-data.zip")
+    ext.destFile = file("$buildDir/upmc-pierre-data.zip")
     src "https://github.com/marytts/upmc-pierre-data/archive/v0.1.zip"
     dest destFile
     overwrite false
     acceptAnyCertificate true
 }
 
-processDataResources.dependsOn unpackAudio
+task unpackData(type: Copy) {
+    dependsOn downloadData
+    from zipTree(downloadData.destFile)
+    into buildDir
+    include '**/*.txt', '**/*.lab'
+    filesMatching '**/*.txt', {
+        it.path = "text/$it.name"
+    }
+    filesMatching '**/*.lab', {
+        it.path = "lab/$it.name"
+    }
+    includeEmptyDirs = false
+}
+
+processDataResources.dependsOn unpackAudio, unpackData
 
 wav {
     srcDir = file("$buildDir/audio")
