@@ -1,23 +1,25 @@
 plugins {
-    id 'de.dfki.mary.voicebuilding-legacy' version '5.2.2'
+    id 'de.dfki.mary.voicebuilding-legacy' version '5.5-SNAPSHOT'
     id 'de.undercouch.download' version '3.1.0'
 }
 
 group 'de.dfki.mary'
 version '5.3-SNAPSHOT'
 
-voice {
-    name = 'upmc-pierre'
-    language = 'fr'
-    gender = 'male'
-    type = 'unit selection'
-    description = 'A male French unit selection voice, built at ISIR (UPMC) using data recorded by Pierre Chauvin'
-    license {
-        name = 'Creative Commons Attribution-ShareAlike 3.0 Unported'
-        shortName = 'CC-BY-SA'
-        url = 'http://mary.dfki.de/download/by-sa-3.0.html'
+marytts {
+    voice {
+        name = 'upmc-pierre'
+        language = 'fr'
+        gender = 'male'
+        type = 'unit selection'
+        description = 'A male French unit selection voice, built at ISIR (UPMC) using data recorded by Pierre Chauvin'
+        license {
+            name = 'Creative Commons Attribution-ShareAlike 3.0 Unported'
+            shortName = 'CC-BY-SA'
+            url = 'http://mary.dfki.de/download/by-sa-3.0.html'
+        }
+        samplingRate = 16000
     }
-    samplingRate = 16000
 }
 
 import de.undercouch.gradle.tasks.download.Download
@@ -40,7 +42,14 @@ task downloadData(type: Download) {
 
 processDataResources {
     dependsOn downloadAudio, downloadData
-    from tarTree(downloadAudio.destFile)
+    from tarTree(downloadAudio.destFile), {
+        exclude { it.name =~ /.+[a-z]\..+/ }
+        include '**/*.flac'
+        filesMatching '**/*.flac', {
+            path = "flac/$it.name"
+        }
+        includeEmptyDirs = false
+    }
     from zipTree(downloadData.destFile), {
         include '**/*.txt', '**/*.lab'
         filesMatching '**/*.txt', {
@@ -53,53 +62,84 @@ processDataResources {
     }
 }
 
-wav {
-    srcDir = file("$processDataResources.destinationDir/audio")
-    srcFileExt = 'flac'
-}
-
-task text(type: Copy) {
-    from processDataResources
-    into buildDir
-    include 'text/*.txt'
-}
-
-task lab(type: Copy) {
-    from processDataResources
-    into buildDir
-    include 'lab/*.lab'
-}
-
-legacyInit {
-    dependsOn wav, text, lab
-    def basenameListFile = file("$buildDir/basenames.lst")
-    outputs.files basenameListFile
+task extractWav {
+    dependsOn processDataResources
+    ext.destDir = file("$processDataResources.destinationDir/wav")
+    outputs.dir destDir
+    doFirst {
+        destDir.mkdirs()
+    }
     doLast {
-        basenameListFile.withWriter { basenameList ->
-            fileTree(wav.destDir).collect {
-                it.name - '.wav'
-            }.minus([
-                    'text_0237',
-                    'text_0281',
-                    'text_0292',
-                    'text_0337',
-                    'text_0341',
-                    'text_0346',
-                    'text_0363',
-                    'text_0411',
-                    'text_0512',
-                    'text_0529',
-                    'text_0530',
-                    'text_0578',
-                    'text_0624',
-                    'text_0643',
-                    'text_0737',
-                    'text_0898',
-                    'text_0908',
-                    'text_0916'
-            ]).each {
-                basenameList.writeLine it
+
+        file("$processDataResources.destinationDir/flac").eachFile() { flacFile ->
+            exec {
+                commandLine 'sox', flacFile, "$destDir/${flacFile.name.replaceFirst(~/.flac$/, '.wav')}",
+                'rate', marytts.voice.samplingRate
             }
         }
+
     }
+}
+
+wav {
+    dependsOn extractWav
+    srcDir = extractWav.destDir
+}
+
+task extractText {
+    dependsOn processDataResources
+    ext.destDir = file("$buildDir/text")
+    outputs.dir destDir
+    doFirst {
+        destDir.mkdirs()
+    }
+    doLast {
+        copy {
+            from file("$processDataResources.destinationDir/text")
+            into destDir
+            include '*.txt'
+        }
+    }
+}
+
+task extractLab {
+    dependsOn processDataResources
+    ext.destDir = file("$buildDir/lab")
+    outputs.dir destDir
+    doFirst {
+        destDir.mkdirs()
+    }
+    doLast {
+        copy {
+            from file("$processDataResources.destinationDir/lab")
+            into destDir
+            include '*.lab'
+        }
+    }
+}
+
+
+basenames {
+    dependsOn extractText, extractLab
+    textDir = extractText.destDir
+    labDir = extractLab.destDir
+    include '*'
+    exclude 'text_0237',
+    'text_0281',
+    'text_0292',
+    'text_0337',
+    'text_0341',
+    'text_0346',
+    'text_0363',
+    'text_0411',
+    'text_0512',
+    'text_0529',
+    'text_0530',
+    'text_0578',
+    'text_0624',
+    'text_0643',
+    'text_0737',
+    'text_0898',
+    'text_0908',
+    'text_0916'
 }
